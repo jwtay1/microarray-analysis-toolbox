@@ -1,0 +1,6 @@
+*.*
+!*.m
+
+!.gitignore
+!README.md
+!LICENSE
