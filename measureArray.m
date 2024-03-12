@@ -1,21 +1,27 @@
-clearvars
-close all
-clc
+function measureArray(templateFN, imgFolders, outputFolder)
+%MEASUREARRAY  Measure intensity from microarray
+%
+%  MEASUREARRAY(TEMPLATE, IMGDIR, OUTPUTDIR) processes the microarray
+%  images stored in the directory IMGDIR. The microarray images are aligned
+%  to the defined template file. The resulting intensities are exported as
+%  CSVs to OUTPUTDIR.
+%
+%  TEMPLATE is a struct that contains information about the microarray, as
+%  supplied by RnD. The struct should be named ProteinTemplate and have the
+%  following fields:
+%     - ProteinLabels: Cell array of protein names.
+%     - Points: 2xN double containing relative coordinates of each well.
+%       Note that N should be double (2x) the number of proteins.
+%     - PositiveControlIndex - index of the positive control wells
+%     - NegativeControlIndex - index of the negative control wells (usually
+%                              bottom left)
 
-templateFN = '../data/RnD_Human_XL_Cytokine_ARY022B.mat';
+%  This toolbox was written by Dr. Jian Wei Tay (jian.tay@colorado.edu) at
+%  the BioFrontiers Institute, University of Colorado Boulder.
 
-imgFolders = {'C:\Users\jianw\OneDrive - UCB-O365\Shared\Share with Lynch Lab\data\ESV03 (spotted array)\cropped', ...
-    'C:\Users\jianw\OneDrive - UCB-O365\Shared\Share with Lynch Lab\data\ESV06 (spotted array)\cropped', ...
-    'C:\Users\jianw\OneDrive - UCB-O365\Shared\Share with Lynch Lab\data\ESV07 (spotted array)\cropped', ...
-    'C:\Users\jianw\OneDrive - UCB-O365\Shared\Share with Lynch Lab\data\ESV09 (spotted array)\cropped', ...
-    'C:\Users\jianw\OneDrive - UCB-O365\Shared\Share with Lynch Lab\data\ESV10 (spotted array)\cropped'};
 
-%Specify location to store output files
-outputFolder = 'C:\Users\jianw\OneDrive - UCB-O365\Shared\Share with Lynch Lab\processed\20240214';
-
-%% Process images in folders
-
-load(templateFN)  %Load the ProteinTemplate data
+%Load the ProteinTemplate data
+load(templateFN, 'ProteinTemplate')  
 
 %Make output folder if it doesn't already exist
 if ~exist(fullfile(outputFolder), 'dir')
@@ -167,21 +173,4 @@ fclose(fid);
 
 
 
-% %%
-% 
-% plot(ProteinTemplate.Points(1, :), ProteinTemplate.Points(2, :), 'o')
-% hold on
-% plot(ProteinTemplate.Points(1, [5 6]), ProteinTemplate.Points(2, [5 6]), 'x')
-% hold off
-
-
-
-
-
-
-
-
-
-
-
-
+end

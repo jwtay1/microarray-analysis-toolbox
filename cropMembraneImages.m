@@ -24,6 +24,9 @@ function cropMembraneImages(varargin)
 %
 %  See also IMCROP
 
+%  This toolbox was written by Dr. Jian Wei Tay (jian.tay@colorado.edu) at
+%  the BioFrontiers Institute, University of Colorado Boulder.
+
 %Validate the input
 if numel(varargin) == 0
 
