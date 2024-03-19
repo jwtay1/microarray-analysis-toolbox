@@ -1,4 +1,4 @@
-function measureArray(templateFN, imgFolders, outputFolder)
+function varargout = measureArray(templateFN, imgFolders, outputFolder, varargin)
 %MEASUREARRAY  Measure intensity from microarray
 %
 %  MEASUREARRAY(TEMPLATE, IMGDIR, OUTPUTDIR) processes the microarray
@@ -18,6 +18,12 @@ function measureArray(templateFN, imgFolders, outputFolder)
 
 %  This toolbox was written by Dr. Jian Wei Tay (jian.tay@colorado.edu) at
 %  the BioFrontiers Institute, University of Colorado Boulder.
+
+if ~isempty(varargin)
+    avgSize = varargin{1};
+else
+    avgSize = 2;
+end
 
 
 %Load the ProteinTemplate data
@@ -51,8 +57,12 @@ for iFolder = 1:numel(imgFolders)
 
         for iPt = 1:numel(u)
 
-            storeInt(iPt) = mean(I((round(v(iPt)) - 2):(round(v(iPt)) + 2), ...
-                (round(u(iPt)) - 2):(round(u(iPt)) + 2)), 'all');
+            storeInt(iPt) = mean(I((round(v(iPt)) - avgSize):(round(v(iPt)) + avgSize), ...
+                (round(u(iPt)) - avgSize):(round(u(iPt)) + avgSize)), 'all');
+
+            % imshow(I((round(v(iPt)) - avgSize):(round(v(iPt)) + avgSize), ...
+            %     (round(u(iPt)) - avgSize):(round(u(iPt)) + avgSize)))
+            % pause
 
         end
 
@@ -171,6 +181,6 @@ end
 
 fclose(fid);
 
-
+varargout{1} = storeData;
 
 end
