@@ -80,6 +80,11 @@ end
 %Combine into a single matrix for registration
 imageCoords = [imgTL; imgBR; imgTR];
 
+%% Additional fitting
+
+
+
+
 %% %Calculate the template parameters. 
 
 % Note: I found the correct points by trial-and-error. Not ordered as I
@@ -104,7 +109,6 @@ end
 templateCoords = [templateTL'; templateBR'; templateTR'];
 
 %% Register the two sets of points
-
 
 tform = fitgeotform2d(templateCoords, imageCoords, 'affine');
 [u,v] = transformPointsForward(tform,ProteinTemplate.Points(1, :)',ProteinTemplate.Points(2, :)');

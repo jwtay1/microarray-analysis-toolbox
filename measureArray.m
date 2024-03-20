@@ -51,20 +51,35 @@ for iFolder = 1:numel(imgFolders)
         %Register the image
         [u, v] = registerTemplateToMembrane(I, ProteinTemplate);
 
-        %Measure image data. As a first pass, measure the intensity within
-        %a 2px radius of center.
-        storeInt = zeros(1, numel(u));
+        spotData = fitTemplateSpots(I, u, v);
 
-        for iPt = 1:numel(u)
-
-            storeInt(iPt) = mean(I((round(v(iPt)) - avgSize):(round(v(iPt)) + avgSize), ...
-                (round(u(iPt)) - avgSize):(round(u(iPt)) + avgSize)), 'all');
-
-            % imshow(I((round(v(iPt)) - avgSize):(round(v(iPt)) + avgSize), ...
-            %     (round(u(iPt)) - avgSize):(round(u(iPt)) + avgSize)))
-            % pause
-
+        %Filter bad fits
+        idxBadFit = find([spotData.Rsq] < 0.95);
+        
+        for ii = idxBadFit
+            spotData(ii).Intensity = NaN;
+            spotData(ii).Center = [NaN, NaN];
         end
+
+        fittedCentroids = cat(1, spotData.Center);
+
+        u = fittedCentroids(:, 1);
+        v = fittedCentroids(:, 2);
+
+        % % %Measure image data. As a first pass, measure the intensity within
+        % % %a 2px radius of center.
+        % % storeInt = zeros(1, numel(u));
+        % % 
+        % % for iPt = 1:numel(u)
+        % % 
+        % %     storeInt(iPt) = mean(I((round(v(iPt)) - avgSize):(round(v(iPt)) + avgSize), ...
+        % %         (round(u(iPt)) - avgSize):(round(u(iPt)) + avgSize)), 'all');
+        % % 
+        % %     % imshow(I((round(v(iPt)) - avgSize):(round(v(iPt)) + avgSize), ...
+        % %     %     (round(u(iPt)) - avgSize):(round(u(iPt)) + avgSize)))
+        % %     % pause
+        % % 
+        % % end
 
         %---Save output files---
 
@@ -72,7 +87,7 @@ for iFolder = 1:numel(imgFolders)
         h = figure;
         imshow(I, [])
         hold on
-        plot(u, v, 'ro')
+        plot(u, v, 'r.')
         hold off
         title('Registered template')
 
@@ -98,7 +113,9 @@ for iFolder = 1:numel(imgFolders)
         
         dataInd = numel(storeData) + 1;
         storeData(dataInd).filename = imageFN;
-        storeData(dataInd).intensities = storeInt;
+        storeData(dataInd).intensities = [spotData.Intensity] - [spotData.Background];
+        storeData(dataInd).RawIntensities = [spotData.Intensity];
+        storeData(dataInd).registeredSpots = [u, v];
 
         clearvars storeInt
 
