@@ -25,7 +25,7 @@ imgEnh = imadjust(img);
 imgEnh = imresize(imgEnh, 4);
 
 %Use the Hough transform to identify dark cicles in the image
-[centers, radii] = imfindcircles(imgEnh, [7 15], 'ObjectPolarity', 'dark');
+[centers, radii] = imfindcircles(imgEnh, [7 15], 'ObjectPolarity', 'bright');
 
 %Correct for rescale factor
 centers = centers/4;

@@ -34,10 +34,7 @@ if ~exist(fullfile(outputFolder), 'dir')
             mkdir(outputFolder);
 end
 
-%Initialize an empty struct for data storage
-storeData = [];
-
-for iFolder = 1:numel(imgFolders)
+for iFolder = 1%:numel(imgFolders)
 
     %Get image files in folder
     imgFiles = dir(fullfile(imgFolders{iFolder}, '*.tif'));
@@ -48,52 +45,62 @@ for iFolder = 1:numel(imgFolders)
         imageFN = fullfile(imgFiles(iFile).folder, imgFiles(iFile).name);
         I = imread(imageFN);
 
-        %Register the image
+        %Invert the image
+        I = imcomplement(I);
+
+        %Register the template to the image
         [u, v] = registerTemplateToMembrane(I, ProteinTemplate);
 
-        spotData = fitTemplateSpots(I, u, v);
+        %Fine-tune the fitted positions
+        fittedParameters = fitTemplateSpots(I, u, v);
 
-        %Filter bad fits
-        idxBadFit = find([spotData.Rsq] < 0.95);
-        
-        for ii = idxBadFit
-            spotData(ii).Intensity = NaN;
-            spotData(ii).Center = [NaN, NaN];
+        %Calculate the fine-tuned centroid positions
+        uFT = u - fittedParameters(:, 2);
+        vFT = v - fittedParameters(:, 3);
+
+        %Measure image data. As a first pass, measure the intensity within
+        %a 2px radius of center.
+        storeInt = zeros(numel(uFT), 1);
+
+        for iPt = 1:numel(uFT)
+
+            storeInt(iPt) = mean(I((round(vFT(iPt)) - avgSize):(round(vFT(iPt)) + avgSize), ...
+                (round(uFT(iPt)) - avgSize):(round(uFT(iPt)) + avgSize)), 'all');
+
+            % imshow(I((round(v(iPt)) - avgSize):(round(v(iPt)) + avgSize), ...
+            %     (round(u(iPt)) - avgSize):(round(u(iPt)) + avgSize)))
+            % pause
+
         end
 
-        fittedCentroids = cat(1, spotData.Center);
+        %Normalize the spot intensities
+        refPtInd = ProteinTemplate.PositiveControlIndex(end - 1);
 
-        u = fittedCentroids(:, 1);
-        v = fittedCentroids(:, 2);
+        normIntensities = (storeInt ./ storeInt(refPtInd));
+        normIntensitiesBgCorrected = (storeInt - fittedParameters(:,5))./(storeInt(refPtInd) - fittedParameters(refPtInd, 5));
 
-        % % %Measure image data. As a first pass, measure the intensity within
-        % % %a 2px radius of center.
-        % % storeInt = zeros(1, numel(u));
-        % % 
-        % % for iPt = 1:numel(u)
-        % % 
-        % %     storeInt(iPt) = mean(I((round(v(iPt)) - avgSize):(round(v(iPt)) + avgSize), ...
-        % %         (round(u(iPt)) - avgSize):(round(u(iPt)) + avgSize)), 'all');
-        % % 
-        % %     % imshow(I((round(v(iPt)) - avgSize):(round(v(iPt)) + avgSize), ...
-        % %     %     (round(u(iPt)) - avgSize):(round(u(iPt)) + avgSize)))
-        % %     % pause
-        % % 
-        % % end
+        %Generate the output storage struct
+        if ~exist('storeData', 'var')
+            dataInd = 1;
+        else
+            dataInd = numel(storeData) + 1;
+        end
 
-        %---Save output files---
+        storeData(dataInd).Filename = imageFN;
+        storeData(dataInd).FittedData = fittedParameters;
 
-        %Make and save figure for future reference
-        h = figure;
-        imshow(I, [])
-        hold on
-        plot(u, v, 'r.')
-        hold off
-        title('Registered template')
+        %Calculate derived data
+        storeData(dataInd).MeanIntensityRaw = storeInt;
+        storeData(dataInd).MeanIntensityCorrectedRaw = storeInt - fittedParameters(:, 5);
+
+        storeData(dataInd).MeanIntensity = normIntensities;
+        storeData(dataInd).MeanIntensityCorrected = normIntensitiesBgCorrected;
+
+
+        %--- Save image files ---
 
         %Create output image filename
-
-        [fpath, fname, fext] = fileparts(imageFN);
+        [fpath, fname, ~] = fileparts(imageFN);
 
         %Create a in the output folder with the same name as the original
         %data folder
@@ -108,39 +115,36 @@ for iFolder = 1:numel(imgFolders)
             mkdir(fullfile(outputFolder, folderName));
         end
 
+        %Make and save figure for future reference
+        h = figure;
+        imshow(I, [])
+        hold on
+        plot(uFT, vFT, 'r.')
+        hold off
+        title('Registered template')
         saveas(h, fullfile(outputFolder, folderName, [fname, '.png']), 'png');
         close(h)
-        
-        dataInd = numel(storeData) + 1;
-        storeData(dataInd).filename = imageFN;
-        storeData(dataInd).intensities = [spotData.Intensity] - [spotData.Background];
-        storeData(dataInd).RawIntensities = [spotData.Intensity];
-        storeData(dataInd).registeredSpots = [u, v];
+
+        %Save the inverted image
+        imwrite(I, [fname, '.tif'], 'Compression', 'none')
 
         clearvars storeInt
 
     end
 end
 
-%% Normalize the data
-
-refPtInd = ProteinTemplate.PositiveControlIndex(end - 1);
-
-for iData = 1:numel(storeData)
-
-    if iData == 1
-
-        refInt = storeData(iData).intensities(refPtInd);
-
-    end
-
-    storeData(iData).normIntensities = (storeData(iData).intensities ./ storeData(iData).intensities(refPtInd)) * refInt;
-
-end
-
-save(fullfile(outputFolder, 'data.mat'), 'storeData', 'imgFolders', 'templateFN');
+save(fullfile(outputFolder, 'spotData.mat'), 'storeData', 'imgFolders', 'templateFN');
 
 %% Export the data to CSV
+% 
+% %Filter bad fits
+% idxBadFit = find([spotData.Rsq] < 0.95);
+% 
+% for ii = idxBadFit
+%     spotData(ii).Intensity = NaN;
+%     spotData(ii).Center = [NaN, NaN];
+% end
+%%
 
 fid = fopen(fullfile(outputFolder, 'rawInt.csv'), 'w');
 
@@ -157,10 +161,10 @@ fprintf(fid, '\n');
 
 for iData = 1:numel(storeData)
 
-    fprintf(fid, '%s', storeData(iData).filename);
+    fprintf(fid, '%s', storeData(iData).Filename);
 
-    for iDataPoint = 1:numel(storeData(iData).intensities)
-        fprintf(fid, ',%.3f', storeData(iData).intensities(iDataPoint));
+    for iDataPoint = 1:numel(storeData(iData).MeanIntensityRaw)
+        fprintf(fid, ',%.3f', storeData(iData).MeanIntensityRaw(iDataPoint));
     end
 
     fprintf(fid, '\n');
@@ -186,10 +190,10 @@ fprintf(fid, '\n');
 
 for iData = 1:numel(storeData)
 
-    fprintf(fid, '%s', storeData(iData).filename);
+    fprintf(fid, '%s', storeData(iData).Filename);
 
-    for iDataPoint = 1:numel(storeData(iData).normIntensities)
-        fprintf(fid, ',%.3f', storeData(iData).normIntensities(iDataPoint));
+    for iDataPoint = 1:numel(storeData(iData).MeanIntensityCorrected)
+        fprintf(fid, ',%.3f', storeData(iData).MeanIntensityCorrected(iDataPoint));
     end
 
     fprintf(fid, '\n');
