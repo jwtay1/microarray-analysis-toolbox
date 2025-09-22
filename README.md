@@ -15,6 +15,8 @@ The toolbox will allow you to:
 
 *The images are normalized to the top left-most positive control.
 
+This code was developed in collaboration with the Lynch lab.
+
 ## Usage
 
 1. Run the ``cropMembraneImages`` function to assist with cropping single 
@@ -38,4 +40,9 @@ The toolbox will allow you to:
 ## Help
 
 Additional help is provided in each function. You may also contact the 
-toolbox author at biof-imaging@colorado.edu.
+ALMC at biof-imaging@colorado.edu.
+
+## Author
+
+This code was developed by [Dr. Jian Wei Tay](mailto:jian.tay@colorado.edu).
+
